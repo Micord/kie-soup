@@ -55,6 +55,20 @@
     <url>https://github.com/kiegroup/kie-soup</url>
   </scm>
 
+
+  <distributionManagement>
+    <repository>
+      <id>mikord</id>
+      <name>ASD CG Release repository</name>
+      <url>https://repo.micord.ru/repository/libs-releases-local/</url>
+    </repository>
+    <snapshotRepository>
+      <id>snapshots</id>
+      <name>ASD CG Snapshots repository</name>
+      <url>https://repo.micord.ru/repository/libs-snapshots-local/</url>
+    </snapshotRepository>
+  </distributionManagement>
+
   <repositories>
     <!-- Bootstrap repository to locate the parent pom in case it has not yet been synced in Maven Central. -->
     <!-- Conventions are described in http://community.jboss.org/wiki/MavenGettingStarted-Developers -->
