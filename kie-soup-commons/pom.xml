@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.kie.soup</groupId>
     <artifactId>kie-soup-parent</artifactId>
-    <version>7.7.0.Final-cg</version>
+    <version>7.58.0.Final</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -31,6 +31,10 @@
 
   <name>KIE Soup Commons</name>
   <description>Collection of reusable (not depending on any other KIE Soup module) components for KIE Soup.</description>
+
+  <properties>
+    <java.module.name>org.kie.soup.commons</java.module.name>
+  </properties>
 
   <dependencies>
 
@@ -43,17 +47,17 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>com.thoughtworks.xstream</groupId>
-      <artifactId>xstream</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
       <scope>test</scope>
     </dependency>
 
@@ -72,7 +76,6 @@
               org.kie.soup.commons.*
             </Export-Package>
             <Import-Package>
-              com.thoughtworks.xstream.*;resolution:=optional,
               *
             </Import-Package>
             <_removeheaders>Private-Package</_removeheaders>

@@ -17,7 +17,11 @@ package org.dashbuilder.dataprovider.sql.dialect;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -114,13 +118,23 @@ public class DefaultDialect implements Dialect {
     }
 
     @Override
-    public Date convertToDate(Object value) {
-        try {
-            return value == null ? null : (Date) value;
-        } catch (ClassCastException e) {
-            throw new IllegalArgumentException("Not a java.util.Date: " + value + " (" + value.getClass().getName() + ")");
-        }
-    }
+	public Date convertToDate(Object value) {
+		if (value == null) {
+			return null;
+		} else if (value instanceof Date) {
+			return (Date) value;
+		} else if (value instanceof LocalDateTime) {
+			return Timestamp.valueOf((LocalDateTime) value);
+		} else if (value instanceof Number) {
+			return new Date(((Number) value).longValue());
+		} else {
+			try {
+				return DateFormat.getDateTimeInstance().parse(value.toString());
+			} catch (ParseException e) {
+				throw new IllegalArgumentException("Unable to convert " + value + " of type "+value.getClass()+" to date", e);
+			}
+		}
+	}
 
     @Override
     public String getTableSQL(SQLStatement<?> stmt) {
@@ -383,9 +397,6 @@ public class DefaultDialect implements Dialect {
         }
         if (CoreFunctionType.EQUALS_TO.equals(type)) {
             return getIsEqualsToConditionSQL(columnSQL, params[0]);
-        }
-        if (CoreFunctionType.NOT_EQUALS_TO.equals(type)) {
-            return getNotEqualsToConditionSQL(columnSQL, params[0]);
         }
         if (CoreFunctionType.NOT_EQUALS_TO.equals(type)) {
             return getNotEqualsToConditionSQL(columnSQL, params[0]);
@@ -704,7 +715,7 @@ public class DefaultDialect implements Dialect {
         // Limits
         int limit = select.getLimit();
         int offset = select.getOffset();
-        if (limit > 0 || offset > 0) {
+        if (limit >= 0 || offset > 0) {
             String limitSql = getOffsetLimitSQL(select);
             if (!StringUtils.isBlank(limitSql)) {
                 sql.append(limitSql);
@@ -896,7 +907,7 @@ public class DefaultDialect implements Dialect {
         int offset = select.getOffset();
         int limit = select.getLimit();
         StringBuilder out = new StringBuilder();
-        if (limit > 0) out.append(" LIMIT ").append(limit);
+        if (limit >= 0) out.append(" LIMIT ").append(limit);
         if (offset > 0) out.append(" OFFSET ").append(offset);
         return out.toString();
     }
@@ -951,10 +962,7 @@ public class DefaultDialect implements Dialect {
                     methods[i].setAccessible(true);
                     return methods[i].invoke(o, params);
                 }
-                catch (IllegalAccessException ex) {
-                    return null;
-                }
-                catch (InvocationTargetException ite) {
+                catch (IllegalAccessException | InvocationTargetException ex) {
                     return null;
                 }
             }
@@ -966,7 +974,7 @@ public class DefaultDialect implements Dialect {
         if (!column1.getName().equals(column2.getName())) {
             return false;
         }
-        if (!column1.getClass().getName().equals(column2.getClass().getName())) {
+        if (!column1.getClass().isAssignableFrom(column2.getClass())) {
             return false;
         }
         if (column1 instanceof DynamicDateColumn) {

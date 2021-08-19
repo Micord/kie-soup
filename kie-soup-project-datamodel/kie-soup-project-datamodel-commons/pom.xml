@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.kie.soup</groupId>
     <artifactId>kie-soup-project-datamodel</artifactId>
-    <version>7.7.0.Final-cg</version>
+    <version>7.58.0.Final</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -32,7 +32,7 @@
   <name>Project DataModel - Commons</name>
 
   <properties>
-    <osgi.Bundle-SymbolicName>org.kie.soup.project.datamodel.commons</osgi.Bundle-SymbolicName>
+    <java.module.name>org.kie.soup.project.datamodel.commons</java.module.name>
   </properties>
 
   <dependencies>

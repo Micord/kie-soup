@@ -20,7 +20,7 @@
   <parent>
     <groupId>org.kie.soup</groupId>
     <artifactId>kie-soup-dataset</artifactId>
-    <version>7.7.0.Final-cg</version>
+    <version>7.58.0.Final</version>
   </parent>
 
   <artifactId>kie-soup-dataset-sql</artifactId>
@@ -34,6 +34,11 @@
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
     </dependency>
+    
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+    </dependency>    
 
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -92,6 +97,18 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-module-junit4</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.powermock</groupId>
+      <artifactId>powermock-api-mockito2</artifactId>
       <scope>test</scope>
     </dependency>
 

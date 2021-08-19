@@ -28,6 +28,7 @@ import org.apache.maven.settings.Server;
 import org.apache.maven.settings.Settings;
 import org.apache.maven.wagon.Wagon;
 import org.apache.maven.wagon.providers.http.HttpWagon;
+import org.appformer.maven.integration.embedder.MavenProjectLoader;
 import org.appformer.maven.integration.embedder.MavenSettings;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.eclipse.aether.ConfigurationProperties;
@@ -44,6 +45,7 @@ import org.eclipse.aether.spi.connector.transport.TransporterFactory;
 import org.eclipse.aether.transport.file.FileTransporterFactory;
 import org.eclipse.aether.transport.http.HttpTransporterFactory;
 import org.eclipse.aether.transport.wagon.WagonProvider;
+import org.eclipse.aether.transport.wagon.WagonTransporterFactory;
 import org.eclipse.aether.util.repository.DefaultProxySelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +53,7 @@ import org.slf4j.LoggerFactory;
 import static org.appformer.maven.integration.embedder.MavenProjectLoader.loadMavenProject;
 
 public class Aether {
+    public static final String S3_WAGON_CLASS = "kie.maven.s3.wagon.class";
 
     private static final Logger log = LoggerFactory.getLogger( Aether.class );
 
@@ -87,9 +90,11 @@ public class Aether {
 
     private Collection<RemoteRepository> initRepositories( MavenProject mavenProject ) {
         Collection<RemoteRepository> reps = new HashSet<RemoteRepository>();
-        reps.add( newCentralRepository() );
-        if ( mavenProject != null ) {
-            reps.addAll( mavenProject.getRemoteProjectRepositories() );
+        if (!isForcedOffline()){
+            reps.add( newCentralRepository() );
+            if ( mavenProject != null ) {
+                reps.addAll( mavenProject.getRemoteProjectRepositories() );
+            }
         }
 
         RemoteRepository localRepo = newLocalRepository();
@@ -99,11 +104,16 @@ public class Aether {
         return reps;
     }
 
+    boolean isForcedOffline() {
+        return MavenProjectLoader.isOffline();
+    }
+
     private RepositorySystem newRepositorySystem() {
         DefaultServiceLocator locator = MavenRepositorySystemUtils.newServiceLocator();
         locator.addService( RepositoryConnectorFactory.class, BasicRepositoryConnectorFactory.class );
         locator.addService( TransporterFactory.class, FileTransporterFactory.class );
         locator.addService( TransporterFactory.class, HttpTransporterFactory.class );
+        locator.addService( TransporterFactory.class, WagonTransporterFactory.class );
         locator.setServices( WagonProvider.class, new ManualWagonProvider() );
 
         return locator.getService( RepositorySystem.class );
@@ -158,8 +168,8 @@ public class Aether {
         }
     }
 
-    private RemoteRepository newCentralRepository() {
-        return new RemoteRepository.Builder( "central", "default", "http://repo1.maven.org/maven2/" ).build();
+    RemoteRepository newCentralRepository() {
+        return new RemoteRepository.Builder( "central", "default", "https://repo1.maven.org/maven2/" ).build();
     }
 
     private RemoteRepository newLocalRepository() {
@@ -213,6 +223,14 @@ public class Aether {
                     return (Wagon) Class.forName( "org.overlord.dtgov.jbpm.util.SrampWagonProxy" ).newInstance();
                 } catch ( ClassNotFoundException cnfe ) {
                     log.warn( "Cannot find sramp wagon implementation class", cnfe );
+                }
+            }
+            final String s3WagonClassName = System.getProperty( S3_WAGON_CLASS );
+            if ( "s3".equals( roleHint ) && s3WagonClassName != null && s3WagonClassName.trim().length() > 0 ) {
+                try {
+                    return (Wagon) Class.forName( s3WagonClassName ).newInstance();
+                } catch ( ClassNotFoundException cnfe ) {
+                    log.warn( "Cannot find s3 wagon implementation class", cnfe );
                 }
             }
             return null;

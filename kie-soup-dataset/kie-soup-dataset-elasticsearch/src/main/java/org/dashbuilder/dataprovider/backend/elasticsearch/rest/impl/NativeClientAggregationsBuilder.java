@@ -17,7 +17,6 @@
 package org.dashbuilder.dataprovider.backend.elasticsearch.rest.impl;
 
 import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
@@ -54,6 +53,7 @@ import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.aggregations.metrics.min.MinAggregationBuilder;
 import org.elasticsearch.search.aggregations.support.ValuesSourceAggregationBuilder;
+import org.kie.soup.commons.util.Lists;
 
 /**
  * Helper class for the ELS native client that provides the different <code>AggregationBuilder</code>'s given a group operation.
@@ -138,10 +138,9 @@ public class NativeClientAggregationsBuilder {
                                                                     aggregationBuilders);
 
             if (null != b) {
-
-                return new ArrayList<AbstractAggregationBuilder>() {{
-                    add(b);
-                }};
+                return new Lists.Builder<AbstractAggregationBuilder>()
+                        .add(b)
+                        .build();
             }
         } else {
 
@@ -354,10 +353,7 @@ public class NativeClientAggregationsBuilder {
                 } else {
 
                     // If interval size is not specified by the lookup group operation, calculate the current date limits for index document's date field and the interval size that fits..
-                    try {
-
-                        ElasticSearchClient anotherClient = clientFactory.newClient((ElasticSearchDataSetDef) metadata.getDefinition());
-
+                    try (ElasticSearchClient anotherClient = clientFactory.newClient((ElasticSearchDataSetDef) metadata.getDefinition())) {
                         Date[] limits = utils.calculateDateLimits(anotherClient,
                                                                   metadata,
                                                                   columnGroup.getSourceId(),
@@ -367,8 +363,6 @@ public class NativeClientAggregationsBuilder {
                                                                                      limits[1],
                                                                                      columnGroup);
                         }
-
-                        anotherClient.close();
                     } catch (Exception e) {
                         throw new ElasticSearchClientGenericException("Cannot calculate date limits.",
                                                                       e);

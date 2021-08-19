@@ -16,9 +16,12 @@
 
 package org.appformer.maven.integration;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.apache.maven.artifact.repository.ArtifactRepository;
 import org.apache.maven.artifact.repository.ArtifactRepositoryPolicy;
@@ -35,9 +38,12 @@ import org.apache.maven.settings.Server;
 import org.apache.maven.settings.Settings;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.util.repository.AuthenticationBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MavenRepositoryConfiguration {
 
+    private final static Logger log = LoggerFactory.getLogger(MavenRepositoryConfiguration.class);
     private final Settings settings;
     private final Collection<RemoteRepository> extraRepositories;
     private final Collection<RemoteRepository> remoteRepositoriesForRequest;
@@ -146,6 +152,7 @@ public class MavenRepositoryConfiguration {
                                                                        String id,
                                                                        String layout,
                                                                        String url ) {
+        final Proxy activeProxy = settings.getActiveProxy();
         RemoteRepository.Builder remoteBuilder = new RemoteRepository.Builder( id,
                                                                                layout,
                                                                                url );
@@ -155,8 +162,15 @@ public class MavenRepositoryConfiguration {
                                                      .addPassword( server.getPassword() )
                                                      .build() );
         }
-        return remoteBuilder;
 
+        if (activeProxy != null) {
+            if (null == activeProxy.getNonProxyHosts()) {
+                remoteBuilder.setProxy( getActiveAetherProxyFromSettings(settings));
+            } else if (!repositoryUrlMatchNonProxyHosts(settings.getActiveProxy().getNonProxyHosts(), remoteBuilder.build().getUrl())) {
+                remoteBuilder.setProxy( getActiveAetherProxyFromSettings( settings ) );
+            }
+        }
+        return remoteBuilder;
     }
 
     private static void setPolicy( RemoteRepository.Builder builder,
@@ -178,6 +192,7 @@ public class MavenRepositoryConfiguration {
     private ArtifactRepository toArtifactRepository( RemoteRepository remoteRepository ) {
         final String id = remoteRepository.getId();
         final String url = remoteRepository.getUrl();
+        final Proxy activeProxy = settings.getActiveProxy();
         final ArtifactRepositoryLayout layout = new DefaultRepositoryLayout();
         ArtifactRepositoryPolicy snapshots = new ArtifactRepositoryPolicy();
         ArtifactRepositoryPolicy releases = new ArtifactRepositoryPolicy();
@@ -202,6 +217,47 @@ public class MavenRepositoryConfiguration {
             artifactRepository.setAuthentication( new Authentication( server.getUsername(),
                                                                       server.getPassword() ) );
         }
+
+        if (activeProxy != null) {
+            if (null == activeProxy.getNonProxyHosts()) {
+                artifactRepository.setProxy(getActiveMavenProxyFromSettings(settings));
+            } else if (!repositoryUrlMatchNonProxyHosts(settings.getActiveProxy().getNonProxyHosts(), artifactRepository.getUrl())) {
+                artifactRepository.setProxy(getActiveMavenProxyFromSettings(settings));
+            }
+        }
+
         return artifactRepository;
+    }
+
+    private static boolean repositoryUrlMatchNonProxyHosts (String nonProxyHosts, String artifactURL) {
+        try {
+            Pattern p = Pattern.compile(nonProxyHosts);
+            URL url = new URL(artifactURL);
+            return p.matcher(url.getHost()).find();
+        } catch (MalformedURLException e) {
+            log.warn("Failed to parse URL proxy {}, cause {}", artifactURL, e.getMessage());
+            return false;
+        }
+    }
+
+    private static org.eclipse.aether.repository.Proxy getActiveAetherProxyFromSettings(final Settings settings) {
+        return new org.eclipse.aether.repository.Proxy(settings.getActiveProxy().getProtocol(),
+                                                       settings.getActiveProxy().getHost(),
+                                                       settings.getActiveProxy().getPort(),
+                                                       new AuthenticationBuilder()
+                                                               .addUsername(settings.getActiveProxy().getUsername())
+                                                               .addPassword(settings.getActiveProxy().getPassword())
+                                                               .build());
+    }
+
+    private static org.apache.maven.repository.Proxy getActiveMavenProxyFromSettings(final Settings settings) {
+        final org.apache.maven.repository.Proxy mavenProxy = new org.apache.maven.repository.Proxy();
+        mavenProxy.setProtocol(settings.getActiveProxy().getProtocol());
+        mavenProxy.setHost(settings.getActiveProxy().getHost());
+        mavenProxy.setPort(settings.getActiveProxy().getPort());
+        mavenProxy.setUserName(settings.getActiveProxy().getUsername());
+        mavenProxy.setPassword(settings.getActiveProxy().getPassword());
+        mavenProxy.setNonProxyHosts(settings.getActiveProxy().getNonProxyHosts());
+        return mavenProxy;
     }
 }

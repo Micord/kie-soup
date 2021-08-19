@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.kie.soup</groupId>
     <artifactId>kie-soup-maven-utils</artifactId>
-    <version>7.7.0.Final-cg</version>
+    <version>7.58.0.Final</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -13,6 +13,10 @@
   <packaging>bundle</packaging><!-- bundle = jar + OSGi metadata -->
 
   <name>Maven-support</name>
+
+  <properties>
+    <java.module.name>org.kie.soup.maven.support</java.module.name>
+  </properties>
 
   <dependencies>
     <dependency>

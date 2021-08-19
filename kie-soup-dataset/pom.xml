@@ -22,7 +22,7 @@
   <parent>
     <groupId>org.kie.soup</groupId>
     <artifactId>kie-soup-parent</artifactId>
-    <version>7.7.0.Final-cg</version>
+    <version>7.58.0.Final</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
@@ -38,8 +38,11 @@
     <module>kie-soup-dataset-shared</module>
     <module>kie-soup-dataset-core</module>
     <module>kie-soup-dataset-sql</module>
+    <module>kie-soup-dataset-sql-tests</module>
     <module>kie-soup-dataset-csv</module>
     <module>kie-soup-dataset-elasticsearch</module>
+    <module>kie-soup-dataset-prometheus</module>
+    <module>kie-soup-dataset-kafka</module>
   </modules>
 
 

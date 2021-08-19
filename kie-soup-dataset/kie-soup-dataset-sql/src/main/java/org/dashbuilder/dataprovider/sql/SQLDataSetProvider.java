@@ -15,15 +15,16 @@
  */
 package org.dashbuilder.dataprovider.sql;
 
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.naming.InitialContext;
 import javax.sql.DataSource;
 
@@ -377,24 +378,26 @@ public class SQLDataSetProvider implements DataSetProvider, DataSetDefRegistryLi
 
 
         // Calculate the estimated size
-        int rowCount = _getRowCount(result.metadata, def, conn);
-        int estimatedSize = 0;
-        for (int i=0; i<targetDbColumnIds.size(); i++) {
-            ColumnType cType = targetDbColumnTypes.get(i);
+        if(def.isEstimateSize()) {
+            int rowCount = _getRowCount(result.metadata, def, conn);
+            int estimatedSize = 0;
+            for (int i = 0; i < targetDbColumnIds.size(); i++) {
+                ColumnType cType = targetDbColumnTypes.get(i);
 
-            if (ColumnType.DATE.equals(cType)) {
-                estimatedSize += MemSizeEstimator.sizeOf(Date.class) * rowCount;
-            } else if (ColumnType.NUMBER.equals(cType)) {
-                estimatedSize += MemSizeEstimator.sizeOf(Double.class) * rowCount;
-            } else {
-                int length = targetDbColumnsLength.get(i);
-                estimatedSize += length / 2 * rowCount;
+                if (ColumnType.DATE.equals(cType)) {
+                    estimatedSize += MemSizeEstimator.sizeOf(Date.class) * rowCount;
+                } else if (ColumnType.NUMBER.equals(cType)) {
+                    estimatedSize += MemSizeEstimator.sizeOf(Double.class) * rowCount;
+                } else {
+                    int length = targetDbColumnsLength.get(i);
+                    estimatedSize += length / 2 * rowCount;
+                }
             }
-        }
 
-        // Update the metadata
-        result.metadata.setNumberOfRows(rowCount);
-        result.metadata.setEstimatedSize(estimatedSize);
+            // Update the metadata
+            result.metadata.setNumberOfRows(rowCount);
+            result.metadata.setEstimatedSize(estimatedSize);
+        }
 
         // Store in the cache
         if (!skipCache) {
@@ -405,16 +408,15 @@ public class SQLDataSetProvider implements DataSetProvider, DataSetDefRegistryLi
         return result.metadata;
     }
 
-    protected List<Column> _getColumns(SQLDataSetDef def, Connection conn) throws Exception {
-        Dialect dialect = JDBCUtils.dialect(conn);
-        if (!StringUtils.isBlank(def.getDbSQL())) {
-            Select query = SQLFactory.select(conn).from(def.getDbSQL()).limit(1);
-            return JDBCUtils.getColumns(logSQL(query).fetch(), dialect.getExcludedColumns());
-        }
-        else {
-            Select query = SQLFactory.select(conn).from(_createTable(def)).limit(1);
-            return JDBCUtils.getColumns(logSQL(query).fetch(), dialect.getExcludedColumns());
-        }
+    protected List<Column> _getColumns(SQLDataSetDef def, Connection conn) {
+        final Dialect dialect = JDBCUtils.dialect(conn);
+        Select q = SQLFactory.select(conn);
+        q = (!StringUtils.isBlank(def.getDbSQL()) ? q.from(def.getDbSQL()) : q.from(_createTable(def))).limit(0);
+        return logSQL(q).fetch(new ResultSetConsumer<List<Column>>() {
+            public List<Column> consume(ResultSet _rs) {
+                return JDBCUtils.getColumns(_rs, dialect.getExcludedColumns());
+            }
+        });
     }
 
     protected int _getRowCount(DataSetMetadata metadata, SQLDataSetDef def, Connection conn) throws Exception {
@@ -665,18 +667,15 @@ public class SQLDataSetProvider implements DataSetProvider, DataSetDefRegistryLi
 
                     // Row limits
                     if (trim && postProcessingOps.isEmpty()) {
-                        totalRows = _query.fetchCount();
+                        if(def.isEstimateSize()) {
+                            totalRows = _query.fetchCount();
+                        }
                         _query.limit(lookup.getNumberOfRows()).offset(lookup.getRowOffset());
                     }
 
                     // Fetch the results and build the data set
-                    ResultSet _results = logSQL(_query).fetch();
                     List<DataColumn> columns = calculateColumns(null);
-                    DataSet dataSet = _buildDataSet(columns, _results);
-                    if (trim) {
-                        dataSet.setRowCountNonTrimmed(totalRows);
-                    }
-                    return dataSet;
+                    return buildDataSet(columns, trim, totalRows);
                 }
                 // ... or a list of operations.
                 else {
@@ -705,6 +704,7 @@ public class SQLDataSetProvider implements DataSetProvider, DataSetDefRegistryLi
                     if (groupOp != null) {
                         cg = groupOp.getColumnGroup();
                         if (cg != null) {
+                            groupColumnAdded &= cg.isPostEnabled();
                             _appendGroupBy(groupOp);
 
                             // The in-memory post processing requires that the group column is also included.
@@ -732,22 +732,35 @@ public class SQLDataSetProvider implements DataSetProvider, DataSetDefRegistryLi
                     // ... and the row limits.
                     // If post-processing then defer the trim operation in order to not leave out rows
                     if (trim && postProcessingOps.isEmpty()) {
-                        totalRows = _query.fetchCount();
+                        if (def.isEstimateSize()) {
+                            totalRows = _query.fetchCount();
+                        }
                         _query.limit(lookup.getNumberOfRows()).offset(lookup.getRowOffset());
                     }
 
                     // Fetch the results and build the data set
-                    ResultSet _results = logSQL(_query).fetch();
                     List<DataColumn> columns = calculateColumns(groupOp);
-                    DataSet dataSet = _buildDataSet(columns, _results);
-                    if (trim && postProcessingOps.isEmpty()) {
-                        dataSet.setRowCountNonTrimmed(totalRows);
-                    }
-                    return dataSet;
+                    return buildDataSet(columns, trim, totalRows);
                 }
             } finally {
                 conn.close();
             }
+        }
+        
+        protected DataSet buildDataSet(final List<DataColumn> columns, boolean trim, int totalRows) throws Exception {
+            DataSet dataSet = logSQL(_query).fetch(new ResultSetConsumer<DataSet>() {
+                public DataSet consume(ResultSet _rs) {
+                    try {
+                        return _buildDataSet(columns, _rs);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
+            if (trim && postProcessingOps.isEmpty()) {
+                dataSet.setRowCountNonTrimmed(totalRows);
+            }
+            return dataSet;
         }
 
         protected DateIntervalType calculateDateInterval(ColumnGroup cg) {
@@ -793,22 +806,20 @@ public class SQLDataSetProvider implements DataSetProvider, DataSetDefRegistryLi
                 _appendIntervalSelection(intervalSelect, _limitsQuery);
             }
 
-            try {
-                // Fetch the date
-                ResultSet rs = logSQL(_limitsQuery
-                        .where(_dateColumn.notNull())
-                        .orderBy(min ? _dateColumn.asc() : _dateColumn.desc())
-                        .limit(1)).fetch();
+            _limitsQuery = _limitsQuery.where(_dateColumn.notNull())
+                    .orderBy(min ? _dateColumn.asc() : _dateColumn.desc())
+                    .limit(1);
 
-                if (!rs.next()) {
-                    return null;
-                } else {
-                    return rs.getDate(1);
-                }
-            } catch (SQLException e) {
-                log.error("Error reading date limit from query results", e);
-                return null;
-            }
+            return logSQL(_limitsQuery).fetch(new ResultSetConsumer<Date>() {
+                        public Date consume(ResultSet rs) {
+                            try {
+                                return rs.next() ? rs.getDate(1) : null;
+                            } catch (Exception e) {
+                                log.error("Error reading date limit from query results", e);
+                                return null;
+                            }
+                    }
+                });
         }
 
         protected List<DataColumn> calculateColumns(DataSetGroup gOp) {
@@ -1003,7 +1014,7 @@ public class SQLDataSetProvider implements DataSetProvider, DataSetDefRegistryLi
                 _query.groupBy(SQLFactory.column(dbColumnId));
                 for (GroupFunction gf : groupOp.getGroupFunctions()) {
                     if (!sourceId.equals(gf.getSourceId()) && gf.getFunction() == null) {
-                        postProcessing = true;
+                        postProcessing = cg.isPostEnabled();
                     }
                 }
             }
@@ -1060,7 +1071,12 @@ public class SQLDataSetProvider implements DataSetProvider, DataSetDefRegistryLi
             while (_rs.next() && (numRows < 0 || rowIdx++ < numRows)) {
                 for (int i=0; i<columns.size(); i++) {
                     DataColumn column = dataSet.getColumnByIndex(i);
-                    column.getValues().add(_rs.getObject(i+1));
+                    Object value = _rs.getObject(i+1);
+                    // Clob conversion must be done when object is still open
+                    if (value instanceof Clob) {
+                        value = JDBCUtils.clobToString((Clob) value);
+                    }
+                    column.getValues().add(value);
                 }
             }
 

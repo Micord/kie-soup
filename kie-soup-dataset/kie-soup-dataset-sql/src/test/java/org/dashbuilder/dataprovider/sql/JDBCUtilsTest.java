@@ -15,12 +15,21 @@
  */
 package org.dashbuilder.dataprovider.sql;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.StringReader;
+import java.sql.Clob;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Types;
 import java.util.List;
 
-import org.dashbuilder.dataprovider.sql.JDBCUtils;
 import org.dashbuilder.dataprovider.sql.model.Column;
 import org.dashbuilder.dataset.ColumnType;
 import org.dashbuilder.dataset.def.SQLDataSourceDef;
@@ -30,11 +39,14 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-
 @RunWith(MockitoJUnitRunner.class)
 public class JDBCUtilsTest {
+
+    @Mock
+    Connection connection;
+    
+    @Mock
+    Statement statement;
 
     @Mock
     ResultSet resultSet;
@@ -42,10 +54,21 @@ public class JDBCUtilsTest {
     @Mock
     ResultSetMetaData metaData;
     
+    @Mock
+    Clob clob;
+    
     @Before
     public void setUp() throws Exception {
+        when(connection.createStatement()).thenReturn(statement);
         when(resultSet.getMetaData()).thenReturn(metaData);
     }
+    
+    @Test
+    public void testStatementClose() throws Exception {
+        JDBCUtils.execute(connection, "sql");
+        verify(statement).execute("sql");
+        verify(statement).close();
+    }    
 
     @Test
     public void testListDataSourceDefs() throws Exception {
@@ -99,7 +122,7 @@ public class JDBCUtilsTest {
         when(metaData.getColumnType(34)).thenReturn(Types.DATALINK);
 
         List<Column> columns = JDBCUtils.getColumns(resultSet, null);
-        assertEquals(columns.size(), 20);
+        assertEquals(columns.size(), 21);
         assertEquals(columns.get(0).getType(), ColumnType.LABEL);
         assertEquals(columns.get(1).getType(), ColumnType.LABEL);
         assertEquals(columns.get(2).getType(), ColumnType.LABEL);
@@ -119,5 +142,17 @@ public class JDBCUtilsTest {
         assertEquals(columns.get(17).getType(), ColumnType.DATE);
         assertEquals(columns.get(18).getType(), ColumnType.DATE);
         assertEquals(columns.get(19).getType(), ColumnType.DATE);
+        assertEquals(columns.get(20).getType(), ColumnType.TEXT);
+    }
+    
+    @Test
+    public void clobToStringTest() throws SQLException {
+        String TEST = "TEST";
+        StringReader testReader = new StringReader(TEST);
+        when(clob.getCharacterStream()).thenReturn(testReader);
+        assertEquals(TEST, JDBCUtils.clobToString(clob));
+        assertTrue(JDBCUtils.clobToString(null).isEmpty());
+        when(clob.getCharacterStream()).thenThrow(new RuntimeException());
+        assertTrue(JDBCUtils.clobToString(clob).isEmpty());
     }
 }
