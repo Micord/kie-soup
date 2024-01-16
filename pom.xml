@@ -21,13 +21,13 @@
   <parent>
     <groupId>org.kie</groupId>
     <artifactId>kie-parent</artifactId>
-    <version>7.74.1.Final</version>
+    <version>7.74.1.Final-Micord.1</version>
     <!-- Keep in sync with the parent version of kie-soup-bom/pom.xml -->
   </parent>
 
   <groupId>org.kie.soup</groupId>
   <artifactId>kie-soup-parent</artifactId>
-  <version>7.58.0.Final-Micord-1</version>
+  <version>7.74.1.Final-Micord-1</version>
   <packaging>pom</packaging>
 
   <name>KIE Soup parent</name>
