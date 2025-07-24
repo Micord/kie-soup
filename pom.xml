@@ -54,6 +54,11 @@
     <version.com.googlecode.jsonsimple>1.1.1</version.com.googlecode.jsonsimple>
     <version.com.github.tdomzal.junit.docker>0.3</version.com.github.tdomzal.junit.docker>
     <version.com.spotify.docker.client>5.0.2</version.com.spotify.docker.client>
+    <version.com.google.protobuf>3.25.8</version.com.google.protobuf>
+    <version.net.byte-buddy>1.17.6</version.net.byte-buddy>
+    <version.org.mvel>2.5.2.Final</version.org.mvel>
+    <version.org.springframework.boot>3.5.1</version.org.springframework.boot>
+    <version.org.springframework>6.2.8</version.org.springframework>
     <nexus.url>https://repo.micord.ru</nexus.url>
   </properties>
 
@@ -373,7 +378,24 @@
             </lifecycleMappingMetadata>
           </configuration>
         </plugin>
-
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.14.0</version>
+          <configuration>
+            <release>21</release>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>3.6.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-plugin-plugin</artifactId>
+          <version>3.15.1</version>
+        </plugin>
       </plugins>
 
     </pluginManagement>
@@ -464,6 +486,51 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>jakarta.validation</groupId>
+        <artifactId>jakarta.validation-api</artifactId>
+        <version>3.0.2</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven.resolver</groupId>
+        <artifactId>maven-resolver-api</artifactId>
+        <version>2.0.10</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven.resolver</groupId>
+        <artifactId>maven-resolver-util</artifactId>
+        <version>2.0.10</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven.resolver</groupId>
+        <artifactId>maven-resolver-impl</artifactId>
+        <version>2.0.10</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven.resolver</groupId>
+        <artifactId>maven-resolver-connector-basic</artifactId>
+        <version>2.0.10</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven.resolver</groupId>
+        <artifactId>maven-resolver-spi</artifactId>
+        <version>2.0.10</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven.resolver</groupId>
+        <artifactId>maven-resolver-transport-wagon</artifactId>
+        <version>2.0.10</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven.resolver</groupId>
+        <artifactId>maven-resolver-transport-file</artifactId>
+        <version>2.0.10</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.maven.resolver</groupId>
+        <artifactId>maven-resolver-transport-http</artifactId>
+        <version>1.9.24</version>
+      </dependency>
       <dependency>
         <groupId>org.kie.soup</groupId>
         <artifactId>kie-soup-bom</artifactId>
