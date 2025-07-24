@@ -59,6 +59,7 @@
     <version.org.mvel>2.5.2.Final</version.org.mvel>
     <version.org.springframework.boot>3.5.1</version.org.springframework.boot>
     <version.org.springframework>6.2.8</version.org.springframework>
+    <version.com.thoughtworks.xstream>1.4.21</version.com.thoughtworks.xstream>
     <nexus.url>https://repo.micord.ru</nexus.url>
   </properties>
 
