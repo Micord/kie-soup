@@ -1,0 +1,25 @@
+From a664021a9a9c5e5309b94b48e880b31a93367696 Mon Sep 17 00:00:00 2001
+From: kochetkov <Kochetkov.Sergey@cg.ru>
+Date: Tue, 6 Oct 2020 16:07:44 +0300
+Subject: [PATCH] get offline flag from sys props
+
+---
+ .../maven/integration/embedder/MavenProjectLoader.java          | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/kie-soup-maven-utils/kie-soup-maven-integration/src/main/java/org/appformer/maven/integration/embedder/MavenProjectLoader.java b/kie-soup-maven-utils/kie-soup-maven-integration/src/main/java/org/appformer/maven/integration/embedder/MavenProjectLoader.java
+index ef78934..8a1d2d1 100644
+--- a/kie-soup-maven-utils/kie-soup-maven-integration/src/main/java/org/appformer/maven/integration/embedder/MavenProjectLoader.java
++++ b/kie-soup-maven-utils/kie-soup-maven-integration/src/main/java/org/appformer/maven/integration/embedder/MavenProjectLoader.java
+@@ -41,7 +41,7 @@ public class MavenProjectLoader {
+     static MavenProject mavenProject;
+  
+     public static MavenProject parseMavenPom(File pomFile) {
+-        return parseMavenPom(pomFile, false);
++        return parseMavenPom(pomFile, MavenSettings.getSettings().isOffline());
+     }
+  
+     public static MavenProject parseMavenPom(File pomFile, boolean offline) {
+-- 
+2.30.1.windows.1
+

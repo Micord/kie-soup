@@ -55,7 +55,7 @@ public class MavenProjectLoader {
     static MavenProject mavenProject;
 
     public static MavenProject parseMavenPom(File pomFile) {
-        return parseMavenPom(pomFile, false);
+        return parseMavenPom(pomFile, MavenSettings.getSettings().isOffline());
     }
 
     public static MavenProject parseMavenPom(File pomFile, boolean offline) {
